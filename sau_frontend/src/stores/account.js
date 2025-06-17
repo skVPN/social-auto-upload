@@ -7,10 +7,12 @@ export const useAccountStore = defineStore('account', () => {
   
   // 平台类型映射
   const platformTypes = {
+    0: 'TecDo',
     1: '小红书',
     2: '视频号',
     3: '抖音',
-    4: '快手'
+    4: '快手',
+    5: 'Tiktok'
   }
   
   // 设置账号列表

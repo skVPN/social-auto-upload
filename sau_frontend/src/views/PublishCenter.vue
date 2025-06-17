@@ -484,10 +484,12 @@ const batchPublishType = ref('info')
 
 // 平台列表 - 对应后端type字段
 const platforms = [
+  { key: 0, name: 'TecDo' },
   { key: 3, name: '抖音' },
   { key: 4, name: '快手' },
   { key: 2, name: '视频号' },
-  { key: 1, name: '小红书' }
+  { key: 1, name: '小红书' },
+  { key: 5, name: 'Tiktok' }
 ]
 
 // tab页数据 - 默认只有一个tab
@@ -523,9 +525,12 @@ const availableAccounts = computed(() => {
     3: '抖音',
     2: '视频号',
     1: '小红书',
-    4: '快手'
+    4: '快手',
+    0: 'TecDo',
+    5: 'Tiktok'
   }
   const currentPlatform = currentTab.value ? platformMap[currentTab.value.selectedPlatform] : null
+  console.log("currentPlatform",currentPlatform,accountStore.accounts.filter(acc => acc.platform === currentPlatform))
   return currentPlatform ? accountStore.accounts.filter(acc => acc.platform === currentPlatform) : []
 })
 

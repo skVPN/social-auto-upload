@@ -6,6 +6,8 @@ from uploader.douyin_uploader.main import DouYinVideo
 from uploader.ks_uploader.main import KSVideo
 from uploader.tencent_uploader.main import TencentVideo
 from uploader.xiaohongshu_uploader.main import XiaoHongShuVideo
+from uploader.tk_uploader.main import TiktokVideo
+
 from utils.constant import TencentZoneTypes
 from utils.files_times import generate_schedule_time_next_day
 
@@ -84,6 +86,24 @@ def post_video_xhs(title,files,tags,account_file,category=TencentZoneTypes.LIFES
             app = XiaoHongShuVideo(title, file, tags, publish_datetimes, cookie)
             asyncio.run(app.main(), debug=False)
 
+def post_video_tiktok(title,files,tags,account_file,category=TencentZoneTypes.LIFESTYLE.value,enableTimer=False,videos_per_day = 1, daily_times=None,start_days = 0):
+    # 生成文件的完整路径
+    browser_ids = account_file
+    files = [Path(BASE_DIR / "videoFile" / file) for file in files]
+    file_num = len(files)
+    if enableTimer:
+        publish_datetimes = generate_schedule_time_next_day(file_num, videos_per_day, daily_times,start_days)
+    else:
+        publish_datetimes = 0
+    for index, file in enumerate(files):
+        for browser_id in browser_ids:
+            # 打印视频文件名、标题和 hashtag
+            print(f"视频文件名：{file}")
+            print(f"标题：{title}")
+            print(f"Hashtag：{tags}")
+            print(f"{browser_id=}")
+            app = TiktokVideo(title, file, tags, publish_datetimes, browser_id)
+            asyncio.run(app.main(), debug=False)
 
 
 # post_video("333",["demo.mp4"],"d","d")

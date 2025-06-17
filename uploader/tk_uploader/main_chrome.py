@@ -145,7 +145,8 @@ class TiktokVideo(object):
         file_chooser = await fc_info.value
         await file_chooser.set_files(self.file_path)
 
-    async def upload(self, playwright: Playwright) -> None:
+    async def upload(self, b_id) -> None:
+        tab = BiteBrowser(browser_url).get_tab(browser_id)
         browser = await playwright.chromium.launch(headless=False, executable_path=self.local_executable_path)
         context = await browser.new_context(storage_state=f"{self.account_file}")
         # context = await set_init_script(context)

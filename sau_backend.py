@@ -11,7 +11,8 @@ from myUtils.auth import check_cookie
 from flask import Flask, request, jsonify, Response, render_template, send_from_directory
 from conf import BASE_DIR
 from myUtils.login import get_tencent_cookie, douyin_cookie_gen, get_ks_cookie, xiaohongshu_cookie_gen
-from myUtils.postVideo import post_video_tencent, post_video_DouYin, post_video_ks, post_video_xhs
+from myUtils.postVideo import post_video_tencent, post_video_DouYin, post_video_ks, post_video_xhs,post_video_tiktok
+from utils.my_cookie import get_all_cookie
 
 active_queues = {}
 app = Flask(__name__)
@@ -175,6 +176,8 @@ def get_all_files():
 
 @app.route("/getValidAccounts",methods=['GET'])
 async def getValidAccounts():
+    my_rows= get_all_cookie()
+
     with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
         cursor = conn.cursor()
         cursor.execute('''
@@ -195,7 +198,9 @@ async def getValidAccounts():
                 ''', (0,row[0]))
                 conn.commit()
                 print("✅ 用户状态已更新")
-        for row in rows:
+
+        rows_list+=my_rows
+        for row in rows_list:
             print(row)
         return jsonify(
                         {
@@ -354,6 +359,9 @@ def postVideo():
                       start_days)
         case 4:
             post_video_ks(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+                      start_days)
+        case 5:
+            post_video_tiktok(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
                       start_days)
     # 返回响应给客户端
     return jsonify(

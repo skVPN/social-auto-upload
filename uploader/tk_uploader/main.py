@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
 from datetime import datetime
-
+from alex_utils.browser_get import BiteBrowser
+from setting import BROWSER_URL
 from playwright.async_api import Playwright, async_playwright
 import os
 import asyncio
@@ -69,13 +70,14 @@ async def get_tiktok_cookie(account_file):
 
 
 class TiktokVideo(object):
-    def __init__(self, title, file_path, tags, publish_date, account_file):
+    def __init__(self, title, file_path, tags, publish_date, browser_id):
         self.title = title
         self.file_path = file_path
         self.tags = tags
         self.publish_date = publish_date
-        self.account_file = account_file
+        self.account_file = browser_id
         self.locator_base = None
+        self.browser_id=browser_id
 
 
     async def set_schedule_time(self, page, publish_date):
@@ -138,49 +140,40 @@ class TiktokVideo(object):
             await select_file_button.click()
         file_chooser = await fc_info.value
         await file_chooser.set_files(self.file_path)
-
-    async def upload(self, playwright: Playwright) -> None:
-        browser = await playwright.firefox.launch(headless=False)
-        context = await browser.new_context(storage_state=f"{self.account_file}")
-        context = await set_init_script(context)
-        page = await context.new_page()
-
-        await page.goto("https://www.tiktok.com/creator-center/upload")
+    async def upload(self, ) -> None:
+        tab = BiteBrowser(BROWSER_URL).get_tab(self.browser_id)
+        tab.get("https://www.tiktok.com/creator-center/upload")
         tiktok_logger.info(f'[+]Uploading-------{self.title}.mp4')
+        tab.ele("t:button@data-e2e=select_video_button").click.to_upload(self.file_path)  # 这里可以改为url模式
 
-        await page.wait_for_url("https://www.tiktok.com/tiktokstudio/upload", timeout=10000)
+        title_input = tab.ele('css=div.public-DraftEditor-content')
+        if title_input:
+            title_input.clear()
+            title_input.input(self.title)
+        else:
+            tiktok_logger.error("Title input not found.")
 
-        try:
-            await page.wait_for_selector('iframe[data-tt="Upload_index_iframe"], div.upload-container', timeout=10000)
-            tiktok_logger.info("Either iframe or div appeared.")
-        except Exception as e:
-            tiktok_logger.error("Neither iframe nor div appeared within the timeout.")
+        for tag in self.tags:
+            title_input.input(f'#{tag} ')
 
-        await self.choose_base_locator(page)
-
-        upload_button = self.locator_base.locator(
-            'button:has-text("Select video"):visible')
-        await upload_button.wait_for(state='visible')  # 确保按钮可见
-
-        async with page.expect_file_chooser() as fc_info:
-            await upload_button.click()
-        file_chooser = await fc_info.value
-        await file_chooser.set_files(self.file_path)
-
-        await self.add_title_tags(page)
-        # detact upload status
-        await self.detect_upload_status(page)
         if self.publish_date != 0:
-            await self.set_schedule_time(page, self.publish_date)
+            tiktok_logger.info("设置定时发布暂未实现，如需请补充 set_schedule_time 的 DrissionPage 版本")
 
-        await self.click_publish(page)
+        publish_btn = tab.ele('t:button@data-e2e=post_video_button')
+        uploaded_span = tab.wait.ele_displayed('t:span@data-icon=CheckCircleFill', timeout=20)
+        if uploaded_span and publish_btn:
+            publish_btn.click()
+            print("已上传出现")
+            tiktok_logger.success("  [-] video published (click)")
+            tiktok_logger.info('  [-] update cookie！')
+            # tab.close()
+            await asyncio.sleep(2) 
+            return True
+        else:
+            print("等待超时")
 
-        await context.storage_state(path=f"{self.account_file}")  # save cookie
-        tiktok_logger.info('  [-] update cookie！')
-        await asyncio.sleep(2)  # close delay for look the video status
-        # close all
-        await context.close()
-        await browser.close()
+        tiktok_logger.error("Publish button not found.")
+
 
     async def add_title_tags(self, page):
 
@@ -260,6 +253,7 @@ class TiktokVideo(object):
             self.locator_base = page.locator(Tk_Locator.default) 
 
     async def main(self):
-        async with async_playwright() as playwright:
-            await self.upload(playwright)
+        result = await  self.upload()
+        if not result:
+            raise Exception("发布异常")
 
